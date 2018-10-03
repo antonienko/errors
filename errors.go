@@ -92,8 +92,7 @@
 package errors
 
 import (
-	"fmt"
-	"io"
+	"github.com/cathalgarvey/fmtless"
 )
 
 // New returns an error with the supplied message.
@@ -123,22 +122,6 @@ type fundamental struct {
 
 func (f *fundamental) Error() string { return f.msg }
 
-func (f *fundamental) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			io.WriteString(s, f.msg)
-			f.stack.Format(s, verb)
-			return
-		}
-		fallthrough
-	case 's':
-		io.WriteString(s, f.msg)
-	case 'q':
-		fmt.Fprintf(s, "%q", f.msg)
-	}
-}
-
 // WithStack annotates err with a stack trace at the point WithStack was called.
 // If err is nil, WithStack returns nil.
 func WithStack(err error) error {
@@ -157,22 +140,6 @@ type withStack struct {
 }
 
 func (w *withStack) Cause() error { return w.error }
-
-func (w *withStack) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v", w.Cause())
-			w.stack.Format(s, verb)
-			return
-		}
-		fallthrough
-	case 's':
-		io.WriteString(s, w.Error())
-	case 'q':
-		fmt.Fprintf(s, "%q", w.Error())
-	}
-}
 
 // Wrap returns an error annotating err with a stack trace
 // at the point Wrap is called, and the supplied message.
@@ -227,20 +194,6 @@ type withMessage struct {
 
 func (w *withMessage) Error() string { return w.msg + ": " + w.cause.Error() }
 func (w *withMessage) Cause() error  { return w.cause }
-
-func (w *withMessage) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", w.Cause())
-			io.WriteString(s, w.msg)
-			return
-		}
-		fallthrough
-	case 's', 'q':
-		io.WriteString(s, w.Error())
-	}
-}
 
 // Cause returns the underlying cause of the error, if possible.
 // An error value has a cause if it implements the following
